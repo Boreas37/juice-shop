@@ -39,7 +39,6 @@ jobs:
           format: "spdx-json"
 
       # 5. Adım: Docker imajını bilinen zafiyetlere karşı tara (Grype ile)
-      # HATA MUHTEMELEN BU SATIRDAYDI, LÜTFEN KONTROL EDİN
       - name: Scan Image for Vulnerabilities with Grype
         uses: anchore/grype-action@v0
         with:
