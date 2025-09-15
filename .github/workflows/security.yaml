@@ -2,14 +2,11 @@
 
 name: Build, SBOM and Security Scan
 
-# ÖNEMLİ NOT: Bu pipeline'ın doğru çalışması için reponuzda 'package-lock.json' dosyası bulunmalıdır!
-# Eğer yoksa, local'de 'npm install' çalıştırıp oluşan dosyayı reponuza commit'leyin.
-
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "master", "develop" ]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "master", "develop" ]
   workflow_dispatch:
 
 jobs:
@@ -18,27 +15,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Adım: Proje kodunu sanal makineye indirir.
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
+      # YENİ EKLENDİ - DOCKER İÇİN HAZIRLIK #
+      # 2. Adım: Docker Buildx'i kurar. Bu, GitHub Actions'da imaj oluşturmak için gereklidir.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install Dependencies
-        run: npm install
+      # YENİ EKLENDİ - DOCKER BUILD #
+      # 3. Adım: Projenin Dockerfile'ını kullanarak bir Docker imajı oluşturur.
+      # Bu imaja 'juice-shop-ci' adını veriyoruz, böylece sonraki adımlarda kullanabiliriz.
+      - name: Build Docker image
+        run: docker build -t juice-shop-ci .
 
-      - name: Build Application
-        run: npm run build
-      
-      - name: Generate SBOM
+      # GÜNCELLENDİ - DOCKER İMAJINDAN SBOM ÇIKARMA #
+      # 4. Adım: Syft aracını kullanarak az önce oluşturduğumuz Docker imajını tarar ve SBOM oluşturur.
+      - name: Generate SBOM from Docker Image
         uses: anchore/sbom-action@v0
         with:
-          dir: "."
+          # 'dir: "."' yerine 'image:' parametresini kullanıyoruz.
+          image: "juice-shop-ci" 
           format: "spdx-json"
-      
+
+      # --- Diğer güvenlik taramaları aynen devam ediyor --- #
+
+      # 5. Adım: OWASP Dependency-Check (Bu hala kaynak kod üzerinden çalışır, bu da değerlidir)
+      # Önce 'npm install' yapmak gerekir ki 'package-lock.json' okuyabilsin.
+      - name: Install dependencies for SCA scan
+        run: npm install
       - name: Run OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
@@ -46,20 +52,17 @@ jobs:
           path: '.'
           format: 'SARIF'
           scan-args: "--disableYarnAudit --disableNodeAudit"
-
-      # upload-sarif versiyonu v2 -> v3 olarak güncellendi
       - name: Upload Dependency-Check SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'dependency-check-report.sarif'
       
+      # 6. Adım: Semgrep ile Statik Kod Analizi (Bu da kaynak kod üzerinden çalışır)
       - name: Run Semgrep CI
         uses: semgrep/semgrep-action@v1
         with:
           format: sarif
           output: semgrep.sarif
-          
-      # upload-sarif versiyonu v2 -> v3 olarak güncellendi
       - name: Upload Semgrep SARIF file
         uses: github/codeql-action/upload-sarif@v3
         with:
