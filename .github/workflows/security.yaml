@@ -28,7 +28,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          load: true # İmajı sadece sonraki adımlarda kullanmak için yükle
+          load: true
           tags: juice-shop-ci:latest
 
       # 4. Adım: Docker imajından SBOM oluştur (Syft ile)
@@ -39,13 +39,13 @@ jobs:
           format: "spdx-json"
 
       # 5. Adım: Docker imajını bilinen zafiyetlere karşı tara (Grype ile)
-      # BU ADIM, HATA VEREN 'OWASP Dependency-Check' VE 'npm install' ADIMLARININ YERİNİ ALDI.
+      # HATA MUHTEMELEN BU SATIRDAYDI, LÜTFEN KONTROL EDİN
       - name: Scan Image for Vulnerabilities with Grype
         uses: anchore/grype-action@v0
         with:
           image: "juice-shop-ci:latest"
-          fail-on-severity: "high" # Yüksek seviyeli zafiyet bulursa pipeline'ı başarısız yap
-          output-format: "sarif"    # Rapor formatını SARIF olarak belirliyoruz
+          fail-on-severity: "high"
+          output-format: "sarif"
 
       # 6. Adım: Grype zafiyet tarama sonuçlarını GitHub Güvenlik sekmesine yükle
       - name: Upload Grype Scan SARIF
@@ -54,7 +54,6 @@ jobs:
           sarif_file: grype.sarif
       
       # 7. Adım: Semgrep ile kaynak kod üzerinde statik kod analizi yap
-      # Önceki hatalar giderildiği için bu adım artık sorunsuz çalışacaktır.
       - name: Run Semgrep CI
         uses: semgrep/semgrep-action@v1
         with:
