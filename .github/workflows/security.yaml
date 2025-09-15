@@ -15,15 +15,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Adım: Proje kodunu indir
+      # YENİ HATA AYIKLAMA ADIMI #
+      # Bu adım, pipeline'ın kullandığı YAML dosyasının içeriğini loglara yazdıracak.
+      - name: DEBUG - Show Workflow File Content
+        run: |
+          echo "--- Workflow file content ---"
+          cat .github/workflows/security-scan.yml
+          echo "---------------------------"
+
+      # --- Diğer adımlar --- #
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Adım: Docker imajı oluşturmak için hazırlık
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 3. Adım: Dockerfile'ı kullanarak uygulamayı bir imaj olarak "build" et
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
@@ -31,14 +37,12 @@ jobs:
           load: true
           tags: juice-shop-ci:latest
 
-      # 4. Adım: Docker imajından SBOM oluştur (Syft ile)
       - name: Generate SBOM from Docker Image
         uses: anchore/sbom-action@v0
         with:
           image: "juice-shop-ci:latest"
           format: "spdx-json"
 
-      # 5. Adım: Docker imajını bilinen zafiyetlere karşı tara (Grype ile)
       - name: Scan Image for Vulnerabilities with Grype
         uses: anchore/grype-action@v0
         with:
@@ -46,20 +50,17 @@ jobs:
           fail-on-severity: "high"
           output-format: "sarif"
 
-      # 6. Adım: Grype zafiyet tarama sonuçlarını GitHub Güvenlik sekmesine yükle
       - name: Upload Grype Scan SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: grype.sarif
       
-      # 7. Adım: Semgrep ile kaynak kod üzerinde statik kod analizi yap
       - name: Run Semgrep CI
         uses: semgrep/semgrep-action@v1
         with:
           format: sarif
           output: semgrep.sarif
           
-      # 8. Adım: Semgrep sonuçlarını GitHub Güvenlik sekmesine yükle
       - name: Upload Semgrep SARIF file
         uses: github/codeql-action/upload-sarif@v3
         with:
