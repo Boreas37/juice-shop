@@ -2,11 +2,14 @@
 
 name: Build, SBOM and Security Scan
 
+# ÖNEMLİ NOT: Bu pipeline'ın doğru çalışması için reponuzda 'package-lock.json' dosyası bulunmalıdır!
+# Eğer yoksa, local'de 'npm install' çalıştırıp oluşan dosyayı reponuza commit'leyin.
+
 on:
   push:
-    branches: [ "master", "develop" ]
+    branches: [ "main", "develop" ]
   pull_request:
-    branches: [ "master", "develop" ]
+    branches: [ "main", "develop" ]
   workflow_dispatch:
 
 jobs:
@@ -15,59 +18,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Adım: Kodu indir
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Adım: Node.js ortamını kur
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
 
-      # 3. Adım: Build işlemi (Bağımlılıklar bu adımda yüklenir)
       - name: Install Dependencies
         run: npm install
+
       - name: Build Application
         run: npm run build
       
-      # 4. Adım: Syft ile SBOM oluştur ve yükle
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
           dir: "."
           format: "spdx-json"
-
-      # YENİ EKLENEN ADIMLAR BURADA BAŞLIYOR #
       
-      # 5. Adım: OWASP Dependency-Check ile Bağımlılık Taraması
       - name: Run OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
           project: 'juice-shop'
           path: '.'
-          format: 'SARIF' # Sonuçları GitHub Security tabında görmek için SARIF formatını kullanıyoruz
-          scan-args: "--disableYarnAudit --disableNodeAudit" # Juice-shop projesi için audit'leri devre dışı bırakmak gerekebilir
+          format: 'SARIF'
+          scan-args: "--disableYarnAudit --disableNodeAudit"
 
-      # 6. Adım: OWASP Dependency-Check Sonuçlarını Yükle
+      # upload-sarif versiyonu v2 -> v3 olarak güncellendi
       - name: Upload Dependency-Check SARIF
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'dependency-check-report.sarif'
       
-      # ESKİ ADIMLAR DEVAM EDİYOR #
-
-      # 7. Adım: Semgrep ile Statik Kod Analizi
       - name: Run Semgrep CI
         uses: semgrep/semgrep-action@v1
         with:
           format: sarif
           output: semgrep.sarif
           
-      # 8. Adım: Semgrep sonuçlarını GitHub'a yükle
+      # upload-sarif versiyonu v2 -> v3 olarak güncellendi
       - name: Upload Semgrep SARIF file
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
         if: always()
