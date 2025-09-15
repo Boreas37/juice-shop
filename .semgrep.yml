@@ -1,0 +1,20 @@
+# .semgrep.yml
+
+rules:
+  # Semgrep'in topluluk tarafından yönetilen ve önerilen JavaScript/Node.js kural setini dahil et.
+  # Bu set, güvenlik zafiyetlerinin büyük bir kısmını (XSS, SQL Injection, Command Injection vb.) kapsar.
+  - p/javascript
+  - p/expressjs
+  - p/node
+  - p/owasp-top-ten
+
+  # İsterseniz kendi özel kurallarınızı da buraya ekleyebilirsiniz.
+  # Örneğin, projenizde kullanılmasını istemediğiniz tehlikeli bir fonksiyonu tespit etmek için:
+  # - id: no-eval
+  #   patterns:
+  #     - pattern: eval(...)
+  #   message: "eval() fonksiyonu kullanımı tehlikelidir ve kod enjeksiyonu zafiyetlerine yol açabilir. Lütfen kullanmaktan kaçının."
+  #   languages:
+  #     - javascript
+  #     - typescript
+  #   severity: ERROR
