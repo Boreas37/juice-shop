@@ -15,38 +15,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Adım: Kodu (repository'yi) sanal makineye indir
+      # 1. Adım: Kodu indir (v3 -> v4 olarak güncellendi)
       - name: Checkout code
         uses: actions/checkout@v4
 
       # 2. Adım: Node.js ortamını kur
-      # Juice Shop bir Node.js projesi olduğu için build ve dependency kurulumu için Node.js gerekir.
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '18' # Juice Shop ile uyumlu bir Node.js sürümü
-          cache: 'npm' # npm bağımlılıklarını cache'leyerek sonraki çalışmaları hızlandır
+          node-version: '18'
+          cache: 'npm'
 
-      # 3. Adım: Build işlemi - Bağımlılıkları yükle (Burası "build almak" dediğimiz kısım)
-      # Syft'in bağımlılıkları görebilmesi için node_modules klasörünün oluşması gerekir.
+      # 3. Adım: Build işlemi
       - name: Install Dependencies
         run: npm install
-
-      # İsteğe bağlı: Eğer projenin bir build script'i varsa onu da çalıştırabilirsiniz.
-      # Juice Shop için bu adım `npm start` öncesi gereklidir.
       - name: Build Application
         run: npm run build
       
-      # 4. Adım: Syft ile SBOM oluştur ("SBOM çıkarmak" dediğimiz kısım)
-      # Proje dosyalarını tarayarak bağımlılık listesini çıkarır ve bir dosyaya yazar.
+      # 4. Adım: Syft ile SBOM oluştur
       - name: Generate SBOM
         uses: anchore/syft-action@v0
         with:
-          format: 'spdx-json' # Yaygın kullanılan bir SBOM formatı
+          format: 'spdx-json'
           output-file: 'sbom.spdx.json'
 
-      # 5. Adım: Oluşturulan SBOM dosyasını Artifact olarak kaydet
-      # Workflow bittiğinde bu dosyayı indirebilmemiz için Artifacts bölümüne yükler.
+      # 5. Adım: Artifact'i kaydet (v3 -> v4 OLARAK GÜNCELLENDİ - HATANIN KAYNAĞI)
       - name: Upload SBOM Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -54,14 +47,13 @@ jobs:
           path: sbom.spdx.json
 
       # 6. Adım: Semgrep CI aracını çalıştır
-      # Kod üzerinde güvenlik taraması yapar.
       - name: Run Semgrep CI
         uses: semgrep/semgrep-action@v1
         with:
           format: sarif
           output: semgrep.sarif
           
-      # 7. Adım: SARIF formatındaki Semgrep sonuçlarını GitHub'a yükle
+      # 7. Adım: Semgrep sonuçlarını GitHub'a yükle
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v2
         with:
